@@ -121,7 +121,7 @@ AUTH_PASSWORD_VALIDATORS = [
 
 LANGUAGE_CODE = 'en-us'
 
-TIME_ZONE = 'UTC'
+TIME_ZONE = 'Asia/Kolkata'
 
 USE_I18N = True
 
@@ -141,21 +141,22 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 AUTH_USER_MODEL = "users.User"
 
 REST_FRAMEWORK = {
-   'AUTH_TOKEN_CLASSES': ('rest_framework_simplejwt.tokens.AccessToken', 
-    'rest_framework_simplejwt.tokens.RefreshToken'),
+    'DEFAULT_AUTHENTICATION_CLASSES': (
+        'rest_framework_simplejwt.authentication.JWTAuthentication',
+    ),
     'DEFAULT_FILTER_BACKENDS': [
         'django_filters.rest_framework.DjangoFilterBackend',
-        'rest_framework.filters.SearchFilter',      # for search
-        'rest_framework.filters.OrderingFilter',    # for ordering
+        'rest_framework.filters.SearchFilter',
+        'rest_framework.filters.OrderingFilter',
     ],
     'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',
-    'PAGE_SIZE': 20,  # number of items per page
+    'PAGE_SIZE': 20,
 }
 
 from datetime import timedelta
 
 SIMPLE_JWT = {
-    'ACCESS_TOKEN_LIFETIME': timedelta(minutes=15),   # short-lived token for security
+    'ACCESS_TOKEN_LIFETIME': timedelta(minutes=1),   # short-lived token for security
     'REFRESH_TOKEN_LIFETIME': timedelta(days=7),      # refresh token can last longer
     'ROTATE_REFRESH_TOKENS': True,                    # generate new refresh token after use
     'BLACKLIST_AFTER_ROTATION': True,                 # blacklisted tokens cannot be reused
@@ -188,3 +189,18 @@ EMAIL_USE_TLS = True
 EMAIL_HOST_USER = 'akshay.devstack@gmail.com'
 EMAIL_HOST_PASSWORD = 'lefaxaqcbjxhifgy'   # ⚠️ Use App Password, not your Gmail password
 DEFAULT_FROM_EMAIL = EMAIL_HOST_USER
+
+
+# ✅ Cookie & CSRF settings for local dev with React frontend
+CSRF_TRUSTED_ORIGINS = [
+    "http://localhost:5173",
+]
+
+SESSION_COOKIE_SAMESITE = "Lax"   # Lax works locally
+SESSION_COOKIE_SECURE = False      # Keep False for local dev
+
+CSRF_COOKIE_SAMESITE = "Lax"      # Lax works locally
+CSRF_COOKIE_SECURE = False         # Keep False for local devf
+
+RAZORPAY_KEY_ID = "rzp_test_RVoZd9UTCaOnZS"
+RAZORPAY_KEY_SECRET = "aktv2nzGgtHZHtxmgJXz3ewY"

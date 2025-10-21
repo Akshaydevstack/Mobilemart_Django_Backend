@@ -1,7 +1,6 @@
 from rest_framework import generics
 from rest_framework.permissions import AllowAny
 from .serializers import RegisterSerializer, CustomTokenObtainPairSerializer
-from rest_framework_simplejwt.views import TokenObtainPairView
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.views import APIView
@@ -13,11 +12,10 @@ from django.contrib.auth import get_user_model
 from google.oauth2 import id_token
 from google.auth.transport import requests
 from django.conf import settings
-
+from rest_framework_simplejwt.views import TokenRefreshView
 
 User = get_user_model()
 
-# Registration view (auto-login)
 
 class RegisterView(generics.CreateAPIView):
     serializer_class = RegisterSerializer
@@ -26,7 +24,6 @@ class RegisterView(generics.CreateAPIView):
     def create(self, request, *args, **kwargs):
         email = request.data.get('email')
 
-        # Check if email already exists
         if User.objects.filter(email=email).exists():
             return Response({"error": "Email already exists"}, status=status.HTTP_400_BAD_REQUEST)
 
@@ -34,28 +31,23 @@ class RegisterView(generics.CreateAPIView):
         serializer.is_valid(raise_exception=True)
         user = serializer.save()
 
-        # Generate refresh token
         refresh = RefreshToken.for_user(user)
 
-        # Prepare response with access token
         response = Response(serializer.data, status=status.HTTP_201_CREATED)
 
-        # Set refresh token in HttpOnly cookie
         response.set_cookie(
-           key="refresh_token",
-                value= str(refresh),
-                httponly=True,
-                secure=False,  # True in production (HTTPS)
-                samesite="Lax",
-                path="/", 
-                max_age=7*24*60*60  # 7 days
+            key="refresh_token",
+            value=str(refresh),
+            httponly=True,
+            secure=False,  # True in production (HTTPS)
+            samesite="Lax",
+                path="/",
+            max_age=7*24*60*60  # 7 days
         )
-
         return response
 
 
 
-# Login view using custom JWT
 
 class CustomLoginView(generics.CreateAPIView):
     permission_classes = [AllowAny]
@@ -66,7 +58,6 @@ class CustomLoginView(generics.CreateAPIView):
         user = authenticate(request, email=email, password=password)
 
         if user is not None:
-            # Use the custom serializer to get the token with extra claims
             refresh = CustomTokenObtainPairSerializer.get_token(user)
             access = refresh.access_token
 
@@ -74,14 +65,13 @@ class CustomLoginView(generics.CreateAPIView):
                 "access": str(access),
             }, status=200)
 
-            # Set refresh token in HttpOnly cookie
             response.set_cookie(
-               key="refresh_token",
-                value= str(refresh),
+                key="refresh_token",
+                value=str(refresh),
                 httponly=True,
                 secure=False,  # True in production (HTTPS)
                 samesite="Lax",
-                path="/", 
+                path="/",
                 max_age=7*24*60*60  # 7 days
             )
 
@@ -97,63 +87,77 @@ class GoogleLoginView(APIView):
     def post(self, request):
         token = request.data.get("token")
         if not token:
-            return Response({"error": "Token is required"}, status=status.HTTP_400_BAD_REQUEST)
+            return Response({"error": "Token is required"}, status=400)
 
         try:
-            # Verify token with Google
-            idinfo = id_token.verify_oauth2_token(token, requests.Request(), settings.GOOGLE_CLIENT_ID)
-
+            # Verify token
+            idinfo = id_token.verify_oauth2_token(
+                token, requests.Request(), settings.GOOGLE_CLIENT_ID)
             email = idinfo.get("email")
             name = idinfo.get("name", "")
-            google_id = idinfo.get("sub")
 
-            # Check if user exists, otherwise create
             user, created = User.objects.get_or_create(
                 email=email,
                 defaults={"username": name}
             )
 
-            # Set unusable password for new users
             if created:
                 user.set_unusable_password()
                 user.save()
 
-            # Generate JWT tokens
-            refresh = RefreshToken.for_user(user)
-            access_token = CustomTokenObtainPairSerializer.get_token(user).access_token
+            # Create tokens
+            refresh = CustomTokenObtainPairSerializer.get_token(user)
+            access_token = refresh.access_token
 
-            # Set refresh token in HttpOnly cookie
+            # Set refresh token cookie
             response = Response({
                 "access": str(access_token)
-            }, status=status.HTTP_200_OK)
+            }, status=200)
 
             response.set_cookie(
                 key="refresh_token",
-                value= str(refresh),
+                value=str(refresh),
                 httponly=True,
-                secure=False,  # True in production (HTTPS)
-                samesite="Lax",
-                path="/", 
-                max_age=7*24*60*60  # 7 days
+                secure=False,   # Local dev
+                samesite="Lax",  # ✅ Must be Lax for local testing
+                path="/",
+                max_age=7*24*60*60
             )
 
             return response
 
-        except ValueError as e:
-            print("Google Auth Error:", e)
-            return Response({"error": "Invalid token"}, status=status.HTTP_400_BAD_REQUEST)
-
         except Exception as e:
             print("Google Auth Error:", e)
-            return Response({"error": "Something went wrong"}, status=status.HTTP_400_BAD_REQUEST)
+            return Response({"error": "Google login failed"}, status=400)
+
+
+
+
+class CookieTokenRefreshView(TokenRefreshView):
+    permission_classes = [AllowAny]
+
+    def post(self, request, *args, **kwargs):
+        refresh_token = request.COOKIES.get('refresh_token')
+        if not refresh_token:
+            print(refresh_token)
+            return Response({"detail": "No refresh token"}, status=status.HTTP_401_UNAUTHORIZED)
+
+        try:
+            token = RefreshToken(refresh_token)
+            data = {"access": str(token.access_token)}
+            return Response(data, status=status.HTTP_200_OK)
+        except Exception:
+            return Response({"detail": "Token invalid or expired"}, status=status.HTTP_401_UNAUTHORIZED)
+
+
 
 
 class LogoutView(APIView):
     permission_classes = [AllowAny]
 
     def post(self, request):
-        # print("COOKIES:", request.COOKIES)
-        refresh_token = request.COOKIES.get("refresh_token")  # ✅ from cookies now
+        refresh_token = request.COOKIES.get(
+            "refresh_token")  # ✅ from cookies now
         if not refresh_token:
             return Response({"error": "Refresh token required"}, status=400)
 
@@ -172,5 +176,6 @@ class LogoutView(APIView):
 
 class TestView(generics.CreateAPIView):
     permission_classes = [IsAuthenticated]
-    def get(self,request):
-        return Response({"message":"authenticaton done!"})
+
+    def get(self, request):
+        return Response({"message": "authenticaton done!"})

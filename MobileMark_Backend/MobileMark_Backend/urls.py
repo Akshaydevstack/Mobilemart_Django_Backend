@@ -22,9 +22,9 @@ urlpatterns = [
     path('api/users/', include('users.urls')),
     path('api/', include('products.urls')),
     path('api/brands/', include('brands.urls')),
-    # path('api/cart/', include('cart.urls')),
-    # path('api/wishlist/', include('wishlist.urls')),
-    # path('api/orders/', include('orders.urls')),
+    path('api/', include('cart.urls')),
+    path('api/', include('wishlist.urls')),
+    path('api/', include('orders.urls')),
     # path('api/payments/', include('payments.urls')),
     # path('api/coupons/', include('coupons.urls')),
 ]
