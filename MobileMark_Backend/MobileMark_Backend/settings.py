@@ -68,7 +68,7 @@ ROOT_URLCONF = 'MobileMark_Backend.urls'
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [],
+        "DIRS": [BASE_DIR / "templates"],
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
@@ -156,7 +156,7 @@ REST_FRAMEWORK = {
 from datetime import timedelta
 
 SIMPLE_JWT = {
-    'ACCESS_TOKEN_LIFETIME': timedelta(minutes=1),   # short-lived token for security
+    'ACCESS_TOKEN_LIFETIME': timedelta(minutes=15),   # short-lived token for security
     'REFRESH_TOKEN_LIFETIME': timedelta(days=7),      # refresh token can last longer
     'ROTATE_REFRESH_TOKENS': True,                    # generate new refresh token after use
     'BLACKLIST_AFTER_ROTATION': True,                 # blacklisted tokens cannot be reused

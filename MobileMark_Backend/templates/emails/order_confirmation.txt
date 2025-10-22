@@ -1,0 +1,26 @@
+Hi {{ user.username }},
+
+Thank you for your order #{{ order.id }}!
+
+Order Summary:
+{% for item in items %}
+- {{ item.name }} x {{ item.quantity }} — ₹{{ item.total }}
+{% endfor %}
+
+Total: ₹{{ total }}
+Payment Method: {{ payment_method }}
+
+{% if shipping %}
+Shipping To:
+{{ shipping.name }}
+{{ shipping.address }}
+{{ shipping.city }}, {{ shipping.state }} - {{ shipping.zip_code }}
+Phone: {{ shipping.phone }}
+Email: {{ shipping.email }}
+{% endif %}
+
+You can view your order here:
+https://yourshop.com/orders/{{ order.id }}
+
+Best regards,  
+Your Shop Team

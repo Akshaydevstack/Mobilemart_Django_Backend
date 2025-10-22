@@ -1,6 +1,6 @@
 from django.db import models
 from brands.models import Brand
-
+from django.contrib.auth import get_user_model
 # Create your models here.
 class Product(models.Model):
     brand = models.ForeignKey(Brand, related_name="products", on_delete=models.CASCADE)
@@ -20,3 +20,17 @@ class ProductImage(models.Model):
 
     def __str__(self):
         return f"Image for {self.product.name}"
+
+
+User = get_user_model()
+
+class ProductReview(models.Model):
+    product = models.ForeignKey(Product, related_name="reviews", on_delete=models.CASCADE)
+    user = models.ForeignKey(User, related_name="reviews", on_delete=models.CASCADE)
+    username = models.CharField(max_length=255)  # store username for quick access
+    rating = models.IntegerField(default=5)      # 1 to 5
+    comment = models.TextField()
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"Review by {self.username} for {self.product.name}"

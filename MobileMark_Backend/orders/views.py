@@ -10,6 +10,7 @@ from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 
 
+
 class OrderViewSet(viewsets.ModelViewSet):
     """
     Handles creating, listing, retrieving, and updating orders.
@@ -25,11 +26,23 @@ class OrderViewSet(viewsets.ModelViewSet):
             return Order.objects.all()
         return Order.objects.filter(user=user)
 
+    # ✅ Replace your old create() with this one
     def create(self, request, *args, **kwargs):
-        serializer = self.get_serializer(data=request.data, context={'request': request})
+        data = request.data
+        payment_method = data.get("payment_method")
+
+        serializer = self.get_serializer(data=data, context={'request': request})
         serializer.is_valid(raise_exception=True)
-        serializer.save(user=request.user)
-        return Response(serializer.data, status=status.HTTP_201_CREATED)
+        order = serializer.save(user=request.user)
+
+        # ✅ Save Razorpay info if applicable
+        if payment_method == "Razorpay":
+            order.razorpay_payment_id = data.get("razorpay_payment_id")
+            order.razorpay_order_id = data.get("razorpay_order_id")
+            order.razorpay_signature = data.get("razorpay_signature")
+            order.save()
+
+        return Response(OrderSerializer(order).data, status=status.HTTP_201_CREATED)
 
     @action(detail=True, methods=["patch"], permission_classes=[permissions.IsAuthenticated])
     def cancel(self, request, pk=None):
@@ -47,14 +60,15 @@ class OrderViewSet(viewsets.ModelViewSet):
 @csrf_exempt
 def create_order(request):
     if request.method == "POST":
-        data = json.loads(request.body)
-        amount = int(data.get("amount", 500)) * 100  # Razorpay works in paise
-        currency = "INR"
+        try:
+            data = json.loads(request.body)
+            amount = int(data.get("amount", 0)) * 100  # amount in paise
+            if amount <= 0:
+                return JsonResponse({"error": "Invalid amount"}, status=400)
 
-        # Initialize Razorpay client
-        client = razorpay.Client(auth=(settings.RAZORPAY_KEY_ID, settings.RAZORPAY_KEY_SECRET))
-
-        # Create order
-        order = client.order.create(dict(amount=amount, currency=currency, payment_capture=1))
-
-        return JsonResponse(order)
+            client = razorpay.Client(auth=(settings.RAZORPAY_KEY_ID, settings.RAZORPAY_KEY_SECRET))
+            order = client.order.create(dict(amount=amount, currency="INR", payment_capture=1))
+            return JsonResponse(order)
+        except Exception as e:
+            return JsonResponse({"error": str(e)}, status=500)
+    return JsonResponse({"error": "Invalid request"}, status=400)

@@ -1,0 +1,41 @@
+Welcome to MobileMart, {{ username }}!
+
+🎉 THANK YOU FOR JOINING MOBILEMART! 🎉
+
+We're absolutely thrilled to welcome you to the MobileMart family! 
+Get ready to explore the world of cutting-edge mobile technology 
+with exclusive deals and premium service.
+
+🌟 WHAT WE OFFER:
+• Latest smartphones and accessories
+• Fast and secure delivery
+• 24/7 customer support
+• Best prices guaranteed
+
+🚀 GET STARTED:
+1. Browse our extensive collection
+2. Add your favorite items to cart
+3. Checkout securely
+4. Enjoy fast delivery!
+
+👉 Start Shopping Now: http://localhost:5173
+
+📊 OUR COMMUNITY:
+• 1000+ Happy Customers
+• 500+ Products Available
+• 24/7 Support Team
+
+Need help or have questions?
+📍 Contact us: support@mobilemart.com
+📞 Call: +1 (555) 123-TECH
+
+Follow us for updates and deals!
+
+Thank you for choosing MobileMart. We can't wait to serve you!
+
+— The MobileMart Team
+
+---
+MobileMart - Your Trusted Mobile Technology Partner
+© {{ current_year }} MobileMart. All rights reserved.
+Privacy Policy: [link] | Terms of Service: [link] | Unsubscribe: [link]

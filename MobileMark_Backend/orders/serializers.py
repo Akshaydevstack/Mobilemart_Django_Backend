@@ -42,6 +42,11 @@ class OrderSerializer(serializers.ModelSerializer):
             "created_at",
             "items",
             "shipping_info",
+            "razorpay_payment_id",
+            "razorpay_order_id",
+            "razorpay_signature"
+            
+
         ]
         read_only_fields = ["status", "created_at"]
 
@@ -49,14 +54,12 @@ class OrderSerializer(serializers.ModelSerializer):
         items_data = validated_data.pop("items")
         shipping_data = validated_data.pop("shipping_info")
 
-        # ✅ Automatically assign user from request context
+  
         user = self.context["request"].user
         validated_data["user"] = user
 
-        # ✅ Create the order
         order = Order.objects.create(**validated_data)
 
-        # ✅ Create each order item
         for item_data in items_data:
             product_id = item_data.get("product")
             try:
@@ -64,9 +67,24 @@ class OrderSerializer(serializers.ModelSerializer):
             except Product.DoesNotExist:
                 raise serializers.ValidationError({"product": f"Product with ID {product_id} not found."})
 
-            OrderItem.objects.create(order=order, product=product, quantity=item_data["quantity"], price=item_data["price"])
+          
+        if product.count < item_data["quantity"]:
+            raise serializers.ValidationError(
+                {"product": f"Not enough stock for {product.name}. Available: {product.count}"}
+            )
 
-        # ✅ Create shipping info
+       
+        product.count -= item_data["quantity"]
+        product.save()
+
+        OrderItem.objects.create(
+            order=order,
+            product=product,
+            quantity=item_data["quantity"],
+            price=item_data["price"]
+        )
+
+    
         ShippingInfo.objects.create(order=order, **shipping_data)
 
         return order

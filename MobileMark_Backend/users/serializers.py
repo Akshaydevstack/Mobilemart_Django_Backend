@@ -3,7 +3,7 @@ from django.contrib.auth import get_user_model
 from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 from rest_framework import viewsets
-
+from .models import Address
 User = get_user_model()
 
 
@@ -49,3 +49,44 @@ class RegisterSerializer(serializers.ModelSerializer):
         return {
             'access': str(access)
         }
+
+
+class PasswordResetSerializer(serializers.Serializer):
+    email = serializers.EmailField()
+
+class PasswordResetConfirmSerializer(serializers.Serializer):
+    uidb64 = serializers.CharField()
+    token = serializers.CharField()
+    new_password = serializers.CharField(min_length=6)
+
+
+class UserSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = User
+        fields = [
+            "id",
+            "email",
+            "username",
+            "role",
+            "is_block",
+            "is_active",
+            "created_at",
+        ]
+        read_only_fields = ["id", "email", "created_at", "is_active"]
+
+
+class AddressSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Address
+        fields = [
+            "id",
+            "name",
+            "email",
+            "phone",
+            "address",
+            "city",
+            "state",
+            "zip_code",
+            "is_default",
+        ]
+

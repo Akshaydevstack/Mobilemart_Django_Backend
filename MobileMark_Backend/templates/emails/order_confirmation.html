@@ -1,0 +1,478 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+      body {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        padding: 20px;
+        margin: 0;
+        min-height: 100vh;
+      }
+      .container {
+        max-width: 650px;
+        background: white;
+        margin: 20px auto;
+        border-radius: 20px;
+        box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+        overflow: hidden;
+        border: 1px solid rgba(255,255,255,0.2);
+      }
+      .header {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        text-align: center;
+        padding: 40px 20px;
+        position: relative;
+        overflow: hidden;
+      }
+      .header::before {
+        content: '';
+        position: absolute;
+        top: -50%;
+        left: -50%;
+        width: 200%;
+        height: 200%;
+        background: radial-gradient(circle, rgba(255,255,255,0.1) 1px, transparent 1px);
+        background-size: 20px 20px;
+        animation: float 20s infinite linear;
+      }
+      @keyframes float {
+        0% { transform: translate(0, 0) rotate(0deg); }
+        100% { transform: translate(-20px, -20px) rotate(360deg); }
+      }
+      .header-content {
+        position: relative;
+        z-index: 2;
+      }
+      .header h2 {
+        font-size: 28px;
+        font-weight: 700;
+        margin-bottom: 10px;
+        text-shadow: 0 2px 4px rgba(0,0,0,0.3);
+      }
+      .header p {
+        font-size: 16px;
+        opacity: 0.9;
+        font-weight: 300;
+      }
+      .content {
+        padding: 40px;
+        color: #333;
+      }
+      .order-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 30px;
+        padding: 20px;
+        background: linear-gradient(135deg, #f8f9ff 0%, #f0f2ff 100%);
+        border-radius: 15px;
+        border-left: 5px solid #667eea;
+      }
+      .order-id {
+        font-size: 24px;
+        font-weight: 700;
+        color: #667eea;
+      }
+      .status-badge {
+        display: inline-block;
+        padding: 10px 20px;
+        border-radius: 25px;
+        font-size: 14px;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+      }
+      .status-processing {
+        background: linear-gradient(135deg, #fff3cd 0%, #ffeaa7 100%);
+        color: #856404;
+        box-shadow: 0 4px 15px rgba(255, 193, 7, 0.3);
+      }
+      .order-table {
+        width: 100%;
+        border-collapse: separate;
+        border-spacing: 0;
+        margin: 30px 0;
+        background: white;
+        border-radius: 15px;
+        overflow: hidden;
+        box-shadow: 0 8px 25px rgba(0,0,0,0.1);
+      }
+      .order-table th {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        padding: 20px;
+        text-align: left;
+        font-weight: 600;
+        font-size: 16px;
+      }
+      .order-table td {
+        padding: 20px;
+        border-bottom: 1px solid #f0f0f0;
+        vertical-align: top;
+      }
+      .order-table tr:last-child td {
+        border-bottom: none;
+      }
+      .order-table tr:hover {
+        background-color: #f8f9ff;
+        transform: translateY(-2px);
+        transition: all 0.3s ease;
+        box-shadow: 0 4px 15px rgba(102, 126, 234, 0.1);
+      }
+      .product-info {
+        display: flex;
+        align-items: center;
+        gap: 15px;
+      }
+      .product-image {
+        width: 80px;
+        height: 80px;
+        border-radius: 12px;
+        object-fit: cover;
+        border: 2px solid #f0f0f0;
+        box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        background: linear-gradient(135deg, #f8f9ff, #e9ecef);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 24px;
+      }
+      .product-image img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        border-radius: 10px;
+      }
+      .product-details {
+        flex: 1;
+      }
+      .product-name {
+        font-weight: 700;
+        color: #333;
+        font-size: 16px;
+        margin-bottom: 5px;
+      }
+      .product-brand {
+        color: #667eea;
+        font-size: 14px;
+        font-weight: 600;
+        margin-bottom: 5px;
+      }
+      .product-description {
+        color: #666;
+        font-size: 13px;
+        line-height: 1.3;
+      }
+      .price {
+        font-weight: 700;
+        color: #667eea;
+        font-size: 16px;
+      }
+      .quantity {
+        display: inline-block;
+        padding: 8px 16px;
+        background: #f8f9ff;
+        border-radius: 20px;
+        font-weight: 600;
+        color: #667eea;
+      }
+      .order-summary {
+        background: linear-gradient(135deg, #f8f9ff 0%, #f0f2ff 100%);
+        padding: 30px;
+        border-radius: 20px;
+        margin: 30px 0;
+        border: 1px solid rgba(102, 126, 234, 0.1);
+      }
+      .summary-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 12px 0;
+        border-bottom: 1px solid rgba(102, 126, 234, 0.1);
+      }
+      .summary-row:last-child {
+        border-bottom: none;
+      }
+      .total-row {
+        font-size: 24px;
+        font-weight: 800;
+        color: #667eea;
+        padding: 20px 0 0 0;
+        border-top: 2px solid rgba(102, 126, 234, 0.2);
+        margin-top: 10px;
+      }
+      .payment-info {
+        background: white;
+        padding: 25px;
+        border-radius: 15px;
+        margin: 25px 0;
+        box-shadow: 0 5px 15px rgba(0,0,0,0.08);
+        border-left: 4px solid #28a745;
+      }
+      .shipping-info {
+        background: linear-gradient(135deg, #fff9f0 0%, #fff3e0 100%);
+        padding: 30px;
+        border-radius: 20px;
+        margin: 30px 0;
+        border-left: 5px solid #ff6b35;
+      }
+      .info-section {
+        margin-bottom: 25px;
+      }
+      .info-section h3 {
+        color: #333;
+        margin-bottom: 15px;
+        font-size: 20px;
+        font-weight: 700;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+      }
+      .info-section h3::before {
+        content: '';
+        width: 8px;
+        height: 8px;
+        background: #667eea;
+        border-radius: 50%;
+      }
+      .btn-container {
+        text-align: center;
+        margin: 40px 0 20px 0;
+      }
+      .btn {
+        display: inline-block;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        padding: 16px 40px;
+        text-decoration: none;
+        border-radius: 50px;
+        font-weight: 700;
+        font-size: 16px;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        box-shadow: 0 8px 25px rgba(102, 126, 234, 0.4);
+        transition: all 0.3s ease;
+        border: none;
+        cursor: pointer;
+      }
+      .btn:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 12px 35px rgba(102, 126, 234, 0.6);
+      }
+      .footer {
+        background: linear-gradient(135deg, #2c3e50 0%, #34495e 100%);
+        color: white;
+        text-align: center;
+        padding: 40px 20px;
+        position: relative;
+        overflow: hidden;
+      }
+      .footer::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 1px;
+        background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
+      }
+      .footer p {
+        margin: 8px 0;
+        opacity: 0.8;
+      }
+      .footer a {
+        color: #667eea;
+        text-decoration: none;
+      }
+      .divider {
+        height: 1px;
+        background: linear-gradient(90deg, transparent, #ddd, transparent);
+        margin: 30px 0;
+      }
+      @media (max-width: 600px) {
+        .content {
+          padding: 20px;
+        }
+        .order-header {
+          flex-direction: column;
+          gap: 15px;
+          text-align: center;
+        }
+        .product-info {
+          flex-direction: column;
+          text-align: center;
+          gap: 10px;
+        }
+        .order-table th, .order-table td {
+          padding: 15px 10px;
+        }
+        .product-image {
+          width: 60px;
+          height: 60px;
+          font-size: 18px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <!-- Header -->
+      <div class="header">
+        <div class="header-content">
+          <h2>🎉 Thank you for your order!</h2>
+          <p>Your order has been confirmed and is being processed</p>
+        </div>
+      </div>
+
+      <!-- Content -->
+      <div class="content">
+        <!-- Order Header -->
+        <div class="order-header">
+          <div class="order-id">Order #{{ order.id }}</div>
+          <span class="status-badge status-processing">{{ order.status }}</span>
+        </div>
+
+        <!-- Order Items -->
+        <div class="info-section">
+          <h3>📦 Order Items</h3>
+          {% if items %}
+          <table class="order-table">
+            <thead>
+              <tr>
+                <th>Product</th>
+                <th>Quantity</th>
+                <th>Price</th>
+                <th>Total</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for item in items %}
+              <tr>
+                <td>
+                  <div class="product-info">
+                    <div class="product-image">
+                      {% if item.is_image_url %}
+                      <img src="{{ item.image }}" alt="{{ item.name }}" onerror="this.style.display='none'; this.parentElement.innerHTML='{{ item.placeholder }}';">
+                      {% else %}
+                      {{ item.image }}
+                      {% endif %}
+                    </div>
+                    <div class="product-details">
+                      <div class="product-name">{{ item.name }}</div>
+                      <div class="product-brand">by {{ item.brand }}</div>
+                      {% if item.description %}
+                      <div class="product-description">{{ item.description }}</div>
+                      {% endif %}
+                    </div>
+                  </div>
+                </td>
+                <td>
+                  <span class="quantity">{{ item.quantity }}</span>
+                </td>
+                <td class="price">₹{{ item.price }}</td>
+                <td class="price">₹{{ item.total }}</td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+          {% else %}
+          <p style="text-align: center; color: #666; font-style: italic; padding: 40px;">
+            No items found in this order.
+          </p>
+          {% endif %}
+        </div>
+
+        <!-- Order Summary -->
+        <div class="order-summary">
+          <h3>💰 Order Summary</h3>
+          <div class="summary-row">
+            <span>Subtotal:</span>
+            <span class="price">₹{{ order.subtotal }}</span>
+          </div>
+          {% if order.discount > 0 %}
+          <div class="summary-row" style="color: #28a745;">
+            <span>Discount:</span>
+            <span>-₹{{ order.discount }}</span>
+          </div>
+          {% endif %}
+          <div class="summary-row total-row">
+            <span>Total Amount:</span>
+            <span>₹{{ order.total }}</span>
+          </div>
+        </div>
+
+        <!-- Payment Information -->
+        <div class="payment-info">
+          <h3>💳 Payment Information</h3>
+          <p><strong>Payment Method:</strong> {{ order.payment_method }}</p>
+          {% if order.razorpay_payment_id %}
+          <p><strong>Payment ID:</strong> {{ order.razorpay_payment_id }}</p>
+          {% endif %}
+          {% if order.razorpay_order_id %}
+          <p><strong>Razorpay Order ID:</strong> {{ order.razorpay_order_id }}</p>
+          {% endif %}
+          <p style="color: #28a745; font-weight: 600; margin-top: 10px;">
+            ✅ Payment Successful
+          </p>
+        </div>
+
+        <!-- Shipping Information -->
+        {% if shipping_info %}
+        <div class="shipping-info">
+          <h3>🚚 Shipping Information</h3>
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+            <div>
+              <p><strong>{{ shipping_info.name }}</strong></p>
+              <p>📧 {{ shipping_info.email }}</p>
+              <p>📞 {{ shipping_info.phone }}</p>
+            </div>
+            <div>
+              <p><strong>Shipping Address:</strong></p>
+              <p>
+                {{ shipping_info.address }},<br>
+                {{ shipping_info.city }}, {{ shipping_info.state }} - {{ shipping_info.zip_code }}
+              </p>
+            </div>
+          </div>
+        </div>
+        {% endif %}
+
+        <!-- Call to Action -->
+        <div class="btn-container">
+          <a href="http://localhost:5173/order-confirmation/{{ order.id }}" class="btn">
+            View Order Details
+          </a>
+        </div>
+
+        <div class="divider"></div>
+
+        <!-- Additional Info -->
+        <div style="text-align: center; color: #666; font-size: 14px;">
+          <p>📧 You'll receive a shipping confirmation email when your order is on its way.</p>
+          <p>⏰ Expected delivery: 3-5 business days</p>
+        </div>
+      </div>
+
+      <!-- Footer -->
+      <div class="footer">
+        <p>© {{ current_year }} Your Shop. All rights reserved.</p>
+        <p>📍 123 Shop Street, City, State - 123456</p>
+        <p>📞 +1 (555) 123-4567 | ✉️ support@yourshop.com</p>
+        <p>
+          <a href="#">Privacy Policy</a> | 
+          <a href="#">Terms of Service</a> | 
+          <a href="#">Contact Us</a>
+        </p>
+      </div>
+    </div>
+  </body>
+</html>
