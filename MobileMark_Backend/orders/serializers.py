@@ -1,7 +1,7 @@
 from rest_framework import serializers
 from .models import Order, OrderItem, ShippingInfo
 from products.models import Product
-
+from users.models import User
 
 class OrderItemSerializer(serializers.ModelSerializer):
     product_name = serializers.CharField(source="product.name", read_only=True)
@@ -9,7 +9,8 @@ class OrderItemSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = OrderItem
-        fields = ["id", "product", "product_name", "product_image", "quantity", "price"]
+        fields = ["id", "product", "product_name",
+                  "product_image", "quantity", "price"]
 
     def get_product_image(self, obj):
         images = obj.product.images.all()
@@ -21,7 +22,8 @@ class OrderItemSerializer(serializers.ModelSerializer):
 class ShippingInfoSerializer(serializers.ModelSerializer):
     class Meta:
         model = ShippingInfo
-        fields = ["name", "email", "phone", "address", "city", "state", "zip_code"]
+        fields = ["name", "email", "phone",
+                  "address", "city", "state", "zip_code"]
 
 
 class OrderSerializer(serializers.ModelSerializer):
@@ -45,16 +47,16 @@ class OrderSerializer(serializers.ModelSerializer):
             "razorpay_payment_id",
             "razorpay_order_id",
             "razorpay_signature"
-            
+
 
         ]
         read_only_fields = ["status", "created_at"]
 
+   
     def create(self, validated_data):
         items_data = validated_data.pop("items")
         shipping_data = validated_data.pop("shipping_info")
 
-  
         user = self.context["request"].user
         validated_data["user"] = user
 
@@ -63,28 +65,44 @@ class OrderSerializer(serializers.ModelSerializer):
         for item_data in items_data:
             product_id = item_data.get("product")
             try:
-                product = Product.objects.get(id=product_id.id if hasattr(product_id, "id") else product_id)
+                product = Product.objects.get(
+                    id=product_id.id if hasattr(product_id, "id") else product_id)
             except Product.DoesNotExist:
-                raise serializers.ValidationError({"product": f"Product with ID {product_id} not found."})
+                raise serializers.ValidationError(
+                    {"product": f"Product with ID {product_id} not found."})
 
-          
-        if product.count < item_data["quantity"]:
-            raise serializers.ValidationError(
-                {"product": f"Not enough stock for {product.name}. Available: {product.count}"}
+            if product.count < item_data["quantity"]:
+                raise serializers.ValidationError(
+                    {"product": f"Not enough stock for {product.name}. Available: {product.count}"}
+                )
+
+            product.count -= item_data["quantity"]
+            product.save()
+
+            OrderItem.objects.create(
+                order=order,
+                product=product,
+                quantity=item_data["quantity"],
+                price=item_data["price"]
             )
 
-       
-        product.count -= item_data["quantity"]
-        product.save()
-
-        OrderItem.objects.create(
-            order=order,
-            product=product,
-            quantity=item_data["quantity"],
-            price=item_data["price"]
-        )
-
-    
         ShippingInfo.objects.create(order=order, **shipping_data)
 
         return order
+
+
+
+
+# admin only serializer
+
+class AdminOrderSerializer(serializers.ModelSerializer):
+    class Meta:
+        model= Order
+        fields = ['id','total','status','created_at']
+
+class AdminTotalOrderSerializer(serializers.ModelSerializer):
+    userName = serializers.CharField(source='user.username', read_only=True)
+
+    class Meta:
+        model = Order
+        fields = ['id', 'total', 'status', 'created_at', 'userName']

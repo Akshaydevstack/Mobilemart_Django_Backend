@@ -5,6 +5,8 @@ from django.shortcuts import get_object_or_404
 from .models import Cart, CartItem
 from .serializers import CartSerializer
 from products.models import Product
+from rest_framework.views import APIView
+from django.db.models import Count
 
 class CartViewSet(viewsets.ViewSet):
     permission_classes = [permissions.IsAuthenticated]
@@ -14,6 +16,7 @@ class CartViewSet(viewsets.ViewSet):
         cart, _ = Cart.objects.get_or_create(user=request.user)
         serializer = CartSerializer(cart)
         return Response(serializer.data)
+    
 
     # POST /cart/ -> add/update product in cart
     def create(self, request):
@@ -53,3 +56,40 @@ class CartViewSet(viewsets.ViewSet):
         cart, _ = Cart.objects.get_or_create(user=request.user)
         cart.items.all().delete()
         return Response({"message": "Cart cleared"})
+    
+
+
+# admin only view 
+
+class AdminManageCartView(APIView):
+
+    def get(self,request,user_id=None):
+        if not user_id:
+            carts = Cart.objects.filter(items__isnull=False).distinct()
+            serializer = CartSerializer(carts,many=True)
+            return Response(serializer.data,status=status.HTTP_200_OK)
+        else:
+            try:
+                cart = Cart.objects.get(user_id = user_id)
+                serializer= CartSerializer(cart)
+                return Response(serializer.data,status=status.HTTP_200_OK)
+            except Cart.DoesNotExist:
+                return Response({"error":"No cart exixt"})
+
+
+
+class ProductCartCountView(APIView):
+    def get(self, request):
+        data = (
+            CartItem.objects
+            .select_related('product', 'product__brand')  # prefetch related objects
+            .values(
+                "product",
+                "product__name",
+                "product__price",
+                "product__brand__name"
+            )
+            .annotate(total_cart_count=Count("cart", distinct=True))
+            .order_by("-total_cart_count")
+        )
+        return Response(data)

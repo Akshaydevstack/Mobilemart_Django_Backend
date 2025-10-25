@@ -40,7 +40,6 @@ Need help? Contact us at support@mobilemart.com
 — The MobileMart Team
         """
         
-        # Create email
         email = EmailMultiAlternatives(
             subject=subject,
             body=text_content,
@@ -58,34 +57,37 @@ Need help? Contact us at support@mobilemart.com
 
 
 
+
 @receiver(pre_save, sender=User)
 def cache_old_user_data(sender, instance, **kwargs):
-    """Cache old email and password before saving (for comparison)."""
-    if instance.pk:  # only for existing users
+    """Cache old email, password, and block status before saving."""
+    if instance.pk:
         try:
             old_user = User.objects.get(pk=instance.pk)
             instance._old_email = old_user.email
             instance._old_password = old_user.password
+            instance._old_is_block = old_user.is_block
         except User.DoesNotExist:
             instance._old_email = None
             instance._old_password = None
+            instance._old_is_block = None
     else:
         instance._old_email = None
         instance._old_password = None
+        instance._old_is_block = None
 
 
-# ✉️ Step 2: Detect changes and send notifications
 @receiver(post_save, sender=User)
 def notify_user_changes(sender, instance, created, **kwargs):
-    """Send email notification if user email or password changes."""
+    """Send email notification if user email, password, or block status changes."""
     if created:
-        # Skip new user creation (handled by welcome email)
-        return
+        return  # Skip on new user creation
 
     old_email = getattr(instance, "_old_email", None)
     old_password = getattr(instance, "_old_password", None)
+    old_is_block = getattr(instance, "_old_is_block", None)
 
-    # 📨 Email change detection
+   
     if old_email and old_email != instance.email:
         subject = "Your MobileMart account email has been updated ✉️"
         context = {
@@ -114,22 +116,23 @@ If this wasn’t you, please contact support immediately at support@mobilemart.c
             to=[instance.email],
         )
         email.attach_alternative(html_content, "text/html")
+
         try:
             email.send(fail_silently=False)
             print(f"📧 Email change notification sent to {instance.email}")
         except Exception as e:
             print(f"❌ Failed to send email change notification: {e}")
 
-    # 🔐 Password change detection
-    elif old_password and not check_password(instance.password, old_password):
-        subject = "Your MobileMart password has been changed 🔒"
-        context = {
-            "username": instance.username or instance.email,
-            "date": timezone.now().strftime("%B %d, %Y at %I:%M %p"),
-        }
+    if old_password and instance.password != old_password:
+        if not (old_email != instance.email or (old_is_block is not None and old_is_block != instance.is_block)):
+            subject = "Your MobileMart password has been changed 🔒"
+            context = {
+                "username": instance.username or instance.email,
+                "date": timezone.now().strftime("%B %d, %Y at %I:%M %p"),
+            }
 
-        html_content = render_to_string("emails/password_changed.html", context)
-        text_content = f"""
+            html_content = render_to_string("emails/password_changed.html", context)
+            text_content = f"""
 Hi {context['username']},
 
 Your MobileMart account password was recently changed.
@@ -137,6 +140,50 @@ Your MobileMart account password was recently changed.
 If you did not make this change, please reset your password immediately or contact support.
 
 — The MobileMart Security Team
+            """
+
+            email = EmailMultiAlternatives(
+                subject=subject,
+                body=text_content.strip(),
+                from_email=settings.DEFAULT_FROM_EMAIL,
+                to=[instance.email],
+            )
+            email.attach_alternative(html_content, "text/html")
+
+            try:
+                email.send(fail_silently=False)
+                print(f"🔐 Password change notification sent to {instance.email}")
+            except Exception as e:
+                print(f"❌ Failed to send password change notification: {e}")
+
+    if old_is_block is not None and old_is_block != instance.is_block:
+        status_text = "blocked" if instance.is_block else "unblocked"
+        subject = (
+            f"Your MobileMart account has been blocked 🚫"
+            if instance.is_block
+            else f"Your MobileMart account is active again ✅"
+        )
+
+        context = {
+            "username": instance.username or instance.email,
+            "status": status_text,
+            "date": timezone.now().strftime("%B %d, %Y at %I:%M %p"),
+        }
+
+        html_template = (
+            "emails/account_blocked.html"
+            if instance.is_block
+            else "emails/account_unblocked.html"
+        )
+        html_content = render_to_string(html_template, context)
+        text_content = f"""
+Hi {context['username']},
+
+Your MobileMart account has been {status_text} on {context['date']}.
+
+If you believe this was a mistake, please contact support at support@mobilemart.com.
+
+— The MobileMart Team
         """
 
         email = EmailMultiAlternatives(
@@ -146,8 +193,9 @@ If you did not make this change, please reset your password immediately or conta
             to=[instance.email],
         )
         email.attach_alternative(html_content, "text/html")
+
         try:
             email.send(fail_silently=False)
-            print(f"🔐 Password change notification sent to {instance.email}")
+            print(f"🚨 Account {status_text} notification sent to {instance.email}")
         except Exception as e:
-            print(f"❌ Failed to send password change notification: {e}")
+            print(f"❌ Failed to send account status change email: {e}")

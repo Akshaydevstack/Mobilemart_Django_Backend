@@ -1,8 +1,8 @@
 from rest_framework import generics
 from rest_framework.permissions import AllowAny
-from .serializers import RegisterSerializer, CustomTokenObtainPairSerializer,PasswordResetSerializer,PasswordResetConfirmSerializer,UserSerializer
+from .serializers import RegisterSerializer, CustomTokenObtainPairSerializer, PasswordResetSerializer, PasswordResetConfirmSerializer, UserSerializer
 from rest_framework.response import Response
-from rest_framework.permissions import IsAuthenticated,IsAdminUser,AllowAny
+from rest_framework.permissions import IsAuthenticated, IsAdminUser, AllowAny
 from rest_framework.views import APIView
 from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework import status
@@ -12,6 +12,7 @@ from django.contrib.auth import get_user_model
 from google.oauth2 import id_token
 from google.auth.transport import requests
 from django.conf import settings
+from rest_framework.settings import api_settings
 from rest_framework_simplejwt.views import TokenRefreshView
 from django.contrib.auth.tokens import PasswordResetTokenGenerator
 from django.utils.http import urlsafe_base64_encode, urlsafe_base64_decode
@@ -21,10 +22,11 @@ from rest_framework import generics, permissions
 from .models import Address
 from .serializers import AddressSerializer
 from rest_framework import viewsets
+from django.db.models import Q
+
 
 User = get_user_model()
 token_generator = PasswordResetTokenGenerator()
-
 
 
 class RegisterView(generics.CreateAPIView):
@@ -44,7 +46,6 @@ class RegisterView(generics.CreateAPIView):
         # ✅ Generate both tokens
         refresh = CustomTokenObtainPairSerializer.get_token(user)
         access = refresh.access_token
-
 
         # ✅ Include access token in response
         response = Response(
@@ -67,8 +68,6 @@ class RegisterView(generics.CreateAPIView):
         )
 
         return response
-
-
 
 
 class CustomLoginView(generics.CreateAPIView):
@@ -102,7 +101,6 @@ class CustomLoginView(generics.CreateAPIView):
             return Response({"detail": "Invalid credentials"}, status=401)
 
 
-
 class GoogleLoginView(APIView):
     permission_classes = [AllowAny]
 
@@ -114,7 +112,7 @@ class GoogleLoginView(APIView):
         try:
             # Verify token
             idinfo = id_token.verify_oauth2_token(
-            token, requests.Request(), settings.GOOGLE_CLIENT_ID)
+                token, requests.Request(), settings.GOOGLE_CLIENT_ID)
             email = idinfo.get("email")
             name = idinfo.get("name", "")
 
@@ -153,8 +151,6 @@ class GoogleLoginView(APIView):
             return Response({"error": "Google login failed"}, status=400)
 
 
-
-
 class CookieTokenRefreshView(TokenRefreshView):
     permission_classes = [AllowAny]
 
@@ -170,8 +166,6 @@ class CookieTokenRefreshView(TokenRefreshView):
             return Response(data, status=status.HTTP_200_OK)
         except Exception:
             return Response({"detail": "Token invalid or expired"}, status=status.HTTP_401_UNAUTHORIZED)
-
-
 
 
 class LogoutView(APIView):
@@ -196,15 +190,6 @@ class LogoutView(APIView):
         return response
 
 
-class TestView(generics.CreateAPIView):
-    permission_classes = [IsAuthenticated]
-
-    def get(self, request):
-        return Response({"message": "authenticaton done!"})
-
-
-
-
 class PasswordResetView(generics.GenericAPIView):
     serializer_class = PasswordResetSerializer
 
@@ -216,19 +201,21 @@ class PasswordResetView(generics.GenericAPIView):
         try:
             user = User.objects.get(email=email)
         except User.DoesNotExist:
-            return Response({"success": True}, status=status.HTTP_200_OK)  # Don't reveal user existence
+            # Don't reveal user existence
+            return Response({"success": True}, status=status.HTTP_200_OK)
 
         uid = urlsafe_base64_encode(force_bytes(user.pk))
         token = token_generator.make_token(user)
-        reset_url = f"http://localhost:5173/reset-password/{uid}/{token}/"  # React frontend URL
+        # React frontend URL
+        reset_url = f"http://localhost:5173/reset-password/{uid}/{token}/"
 
         # Send email
         subject = "Password Reset Request"
         message = f"Hi {user.username},\n\nClick the link below to reset your password:\n{reset_url}\n\nIf you did not request this, ignore this email."
-        send_mail(subject, message, settings.DEFAULT_FROM_EMAIL, [user.email], fail_silently=False)
+        send_mail(subject, message, settings.DEFAULT_FROM_EMAIL,
+                  [user.email], fail_silently=False)
 
         return Response({"success": True}, status=status.HTTP_200_OK)
-
 
 
 class PasswordResetConfirmView(generics.GenericAPIView):
@@ -264,7 +251,6 @@ class CurrentUserView(generics.RetrieveAPIView):
         return self.request.user
 
 
-# ✅ 2. User updates their own profile
 class UserSelfUpdateView(generics.UpdateAPIView):
     serializer_class = UserSerializer
     permission_classes = [IsAuthenticated]
@@ -275,9 +261,9 @@ class UserSelfUpdateView(generics.UpdateAPIView):
     def patch(self, request, *args, **kwargs):
         user = self.get_object()
 
-        # Only allow updating certain fields
-        allowed_fields = ["username","email"]
-        data = {field: request.data[field] for field in allowed_fields if field in request.data}
+        allowed_fields = ["username", "email"]
+        data = {field: request.data[field]
+                for field in allowed_fields if field in request.data}
 
         serializer = self.get_serializer(user, data=data, partial=True)
         serializer.is_valid(raise_exception=True)
@@ -285,7 +271,6 @@ class UserSelfUpdateView(generics.UpdateAPIView):
         return Response(serializer.data, status=status.HTTP_200_OK)
 
 
-# ✅ 3. Admin: Block or unblock users
 class UserBlockUpdateView(generics.UpdateAPIView):
     queryset = User.objects.all()
     serializer_class = UserSerializer
@@ -305,11 +290,8 @@ class UserBlockUpdateView(generics.UpdateAPIView):
         return Response(serializer.data, status=status.HTTP_200_OK)
 
 
-
 class ChangePasswordView(generics.UpdateAPIView):
-    """
-    Change Password API
-    """
+
     permission_classes = [IsAuthenticated]
 
     def update(self, request, *args, **kwargs):
@@ -328,8 +310,7 @@ class ChangePasswordView(generics.UpdateAPIView):
         user.save()
         return Response({"detail": "Password updated successfully!"}, status=status.HTTP_200_OK)
 
- 
-    
+
 class ChangeEmailView(generics.UpdateAPIView):
     permission_classes = [IsAuthenticated]
 
@@ -354,8 +335,6 @@ class ChangeEmailView(generics.UpdateAPIView):
         user.save()
 
         return Response({"detail": "Email updated successfully!"}, status=status.HTTP_200_OK)
-    
-
 
 
 class AddressListCreateView(generics.ListCreateAPIView):
@@ -375,20 +354,87 @@ class AddressDetailView(generics.RetrieveUpdateDestroyAPIView):
 
     def get_queryset(self):
         return Address.objects.filter(user=self.request.user)
-    
-class DeleteUserView(APIView):
-    permission_classes = [permissions.AllowAny]  # Only admin can delete users
 
-    def delete(self, request, pk):
+
+
+
+
+# Admin only view
+
+class AdminManageUsersView(APIView):
+    permission_classes = [permissions.AllowAny]
+
+    def get(self, request, pk=None):
+        if pk is None:
+
+            total_users = User.objects.count()
+            blocked_users = User.objects.filter(is_block=True).count()
+            admin_users = User.objects.filter(role='Admin').count()
+
+            users = User.objects.all().order_by('-id')
+
+            search = request.query_params.get('search')
+            role = request.query_params.get('role')
+            is_block = request.query_params.get('is_block')
+
+            if search:
+                if search.isdigit():
+                    users = users.filter(
+                        Q(username__icontains=search) |
+                        Q(email__icontains=search) |
+                        Q(id=int(search))
+                    )
+                else:
+                    users = users.filter(
+                        Q(username__icontains=search) |
+                        Q(email__icontains=search)
+                    )
+
+            if role:
+                users = users.filter(role=role)
+
+            if is_block is not None:
+                if is_block.lower() == 'true':
+                    users = users.filter(is_block=True)
+                elif is_block.lower() == 'false':
+                    users = users.filter(is_block=False)
+
+            paginator_class = api_settings.DEFAULT_PAGINATION_CLASS
+            paginator = paginator_class()
+            paginator.page_size = 18
+            paginated_users = paginator.paginate_queryset(users, request)
+            serializer = UserSerializer(paginated_users, many=True)
+
+            response = paginator.get_paginated_response(serializer.data)
+            response.data.update({
+                "total_users": total_users,
+                "blocked_users": blocked_users,
+                "admin_users": admin_users,
+            })
+
+            return response
+
+    def patch(self, request, pk):
         try:
-            user = User.objects.get(pk=pk)
-            user.delete()
-            return Response(
-                {"message": "User deleted successfully"},
-                status=status.HTTP_204_NO_CONTENT
-            )
+            user = User.objects.get(id=pk)
         except User.DoesNotExist:
-            return Response(
-                {"error": "User not found"},
-                status=status.HTTP_404_NOT_FOUND
-            )
+            return Response({"error": "user not exist"}, status=status.HTTP_404_NOT_FOUND)
+
+        serializer = UserSerializer(user, data=request.data, partial=True)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data, status=status.HTTP_200_OK)
+        else:
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+    def delete(self, request, pk=None):
+        if not pk:
+            return Response({"error": "User ID is required"}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            user = User.objects.get(id=pk)
+        except User.DoesNotExist:
+            return Response({"error": "User not found"}, status=status.HTTP_404_NOT_FOUND)
+
+        user.delete()
+        return Response({"message": f"User {user.username} deleted successfully"}, status=status.HTTP_200_OK)

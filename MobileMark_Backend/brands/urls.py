@@ -6,5 +6,5 @@ router = DefaultRouter()
 router.register(r'', BrandViewSet, basename='brand')
 
 urlpatterns = [
-    path('', include(router.urls)),
+    path('brands/', include(router.urls)),
 ]

@@ -14,6 +14,7 @@ class ProductReviewSerializer(serializers.ModelSerializer):
         read_only_fields = ['user', 'username', 'created_at']
 
 
+
 class ProductSerializer(serializers.ModelSerializer):
     brand = BrandSerializer()
     images = serializers.ListField(
@@ -27,53 +28,52 @@ class ProductSerializer(serializers.ModelSerializer):
         model = Product
         fields = ['id', 'brand', 'name', 'price', 'description', 'is_active', 'count', 'images', 'created_at', 'reviews']
 
-    def create(self, validated_data):
-        brand_data = validated_data.pop('brand')
-        images = validated_data.pop('images', [])
 
-        # ✅ Get or create the brand
-        brand, _ = Brand.objects.get_or_create(
-            name=brand_data['name'],
-            defaults={'description': brand_data.get('description', '')}
-        )
-
-        # ✅ Atomic creation of product + images
-        with transaction.atomic():
-            product = Product.objects.create(brand=brand, **validated_data)
-            if images:
-                ProductImage.objects.bulk_create([
-                    ProductImage(product=product, image_url=url) for url in images
-                ])
-
-        return product
-
-    def update(self, instance, validated_data):
-        brand_data = validated_data.pop('brand', None)
-        images = validated_data.pop('images', None)
-
-        # ✅ Update brand if provided
-        if brand_data:
-            brand, _ = Brand.objects.get_or_create(
-                name=brand_data['name'],
-                defaults={'description': brand_data.get('description', '')}
-            )
-            instance.brand = brand
-
-        # ✅ Update basic fields
-        for attr, value in validated_data.items():
-            setattr(instance, attr, value)
-        instance.save()
-
-        # ✅ Replace images if provided
-        if images is not None:
-            instance.images.all().delete()  # clear old images
-            ProductImage.objects.bulk_create([
-                ProductImage(product=instance, image_url=url) for url in images
-            ])
-
-        return instance
-
+    
     def to_representation(self, instance):
         data = super().to_representation(instance)
         data['images'] = [img.image_url for img in instance.images.all()]
         return data
+
+
+
+
+class AdminProductSerializer(serializers.ModelSerializer):
+    brand = serializers.PrimaryKeyRelatedField(
+        queryset=Brand.objects.all(),
+        write_only=True
+    )
+    brand_detail = BrandSerializer(source='brand', read_only=True)
+
+    images = serializers.ListField(
+        child=serializers.URLField(),
+        write_only=True,
+        required=False
+    )
+    image_urls = serializers.SerializerMethodField()
+    reviews = ProductReviewSerializer(many=True, read_only=True)
+
+    class Meta:
+        model = Product
+        fields = [
+            'id', 'brand', 'brand_detail', 'name', 'price', 'description',
+            'is_active', 'count', 'images', 'image_urls', 'created_at', 'reviews'
+        ]
+
+    @transaction.atomic
+    def create(self, validated_data):
+        brand = validated_data.pop('brand')
+        images_data = validated_data.pop('images', [])
+
+        # ✅ Create product
+        product = Product.objects.create(brand=brand, **validated_data)
+
+        # ✅ Create multiple product images
+        for url in images_data:
+            ProductImage.objects.create(product=product, image_url=url)
+
+        return product
+
+    def get_image_urls(self, obj):
+        """Return list of all image URLs for the product."""
+        return [img.image_url for img in obj.images.all()]

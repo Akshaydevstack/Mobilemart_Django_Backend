@@ -13,7 +13,6 @@ class ProductSerializer(serializers.ModelSerializer):
         fields = ["id", "name", "price", "images", "count", "description", "brand","brand_name"]
 
     def get_images(self, obj):
-        # return list of URLs only
         return [img.image_url for img in obj.images.all()]
 
 
@@ -46,3 +45,13 @@ class CartSerializer(serializers.ModelSerializer):
 
     def get_total(self, obj):
         return obj.total()
+    
+
+
+
+    
+
+
+
+
+        
