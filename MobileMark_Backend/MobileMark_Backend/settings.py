@@ -31,6 +31,7 @@ ALLOWED_HOSTS = []
 # Application definition
 
 INSTALLED_APPS = [
+    'users.apps.UsersConfig',
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
@@ -39,9 +40,9 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'rest_framework',
     'corsheaders',
+    "channels",
     'rest_framework_simplejwt.token_blacklist',
     'django_filters',
-    'users.apps.UsersConfig',
     'drf_spectacular',
     'drf_spectacular_sidecar',
     'products',
@@ -52,6 +53,7 @@ INSTALLED_APPS = [
     'payments',
     'coupons',
     'common',
+    'notifications',
 ]
 
 MIDDLEWARE = [
@@ -207,3 +209,17 @@ CSRF_COOKIE_SECURE = False         # Keep False for local devf
 
 RAZORPAY_KEY_ID = "rzp_test_RVoZd9UTCaOnZS"
 RAZORPAY_KEY_SECRET = "aktv2nzGgtHZHtxmgJXz3ewY"
+
+# ASGI application
+ASGI_APPLICATION = "MobileMark_Backend.asgi.application"
+
+
+# Channel layers using Redis
+CHANNEL_LAYERS = {
+    "default": {
+        "BACKEND": "channels_redis.core.RedisChannelLayer",
+        "CONFIG": {
+            "hosts": [("127.0.0.1", 6379)],
+        },
+    },
+}

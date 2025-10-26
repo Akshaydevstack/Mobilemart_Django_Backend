@@ -2,34 +2,57 @@ from rest_framework.response import Response
 from .serializers import ProductSerializer
 from rest_framework import viewsets, permissions, status, filters, generics
 from django_filters.rest_framework import DjangoFilterBackend
-from .models import ProductReview, Product,ProductImage
-from .serializers import ProductReviewSerializer,AdminProductSerializer
+from .models import ProductReview, Product, ProductImage
+from .serializers import ProductReviewSerializer, AdminProductSerializer
 from rest_framework.views import APIView
-from django.db.models import Q,F
+from django.db.models import Q, F
 from brands.models import Brand
 from brands.serializers import BrandSerializer
 from django.core.paginator import Paginator
 from django.shortcuts import get_object_or_404
+from rest_framework.pagination import PageNumberPagination
+
 
 class ProductViewSet(viewsets.ModelViewSet):
-    queryset = Product.objects.all().select_related('brand').prefetch_related('images')
+    queryset = Product.objects.filter(is_active=True).select_related(
+        'brand').prefetch_related('images')
     serializer_class = ProductSerializer
     permission_classes = [permissions.AllowAny]
 
-    filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
-    
+    filter_backends = [DjangoFilterBackend,
+                       filters.SearchFilter, filters.OrderingFilter]
+
     filterset_fields = {
-        'brand__id': ['exact'],     
-        'is_active': ['exact'],     
-        'price': ['gte', 'lte'],    
+        'brand__id': ['exact'],
+        'is_active': ['exact'],
+        'price': ['gte', 'lte'],
     }
-    
+
     search_fields = ['name', 'description', 'brand__name']
 
     ordering_fields = ['price', 'created_at', 'name']
 
-    ordering = ['id']  
+    ordering = ['id']
 
+
+# upcoming product view
+
+class UpcomingProductView(APIView):
+    def get(self, request, product_id=None):
+        if not product_id:
+            products = Product.objects.filter(upcoming=True)
+            paginator = PageNumberPagination()
+            paginator.page_size=6
+            paginated_products = paginator.paginate_queryset(products, request, view=self)
+            serializer = ProductSerializer(paginated_products, many=True)
+            return paginator.get_paginated_response(serializer.data)
+        else :
+            try:
+                product = Product.objects.get(id= product_id)
+                serializer = ProductSerializer(product)
+                return Response(serializer.data,status= status.HTTP_200_OK)
+            except Product.DoesNotExist:
+                return Response({"error":"product does not exixt"})
 
 
 # ✅ GET - List all reviews for a specific product
@@ -56,6 +79,7 @@ class ProductReviewCreateView(generics.CreateAPIView):
         serializer.save(user=self.request.user, product=product)
 
 
+# Admin only View
 
 
 class AdminProductManagementView(APIView):
@@ -82,14 +106,17 @@ class AdminProductManagementView(APIView):
         page = int(request.query_params.get("page", 1))
         page_size = int(request.query_params.get("page_size", 10))
         stock_filter = request.query_params.get("stock")  # 'low' or 'out'
-        active_filter= request.query_params.get("active")
+        active_filter = request.query_params.get("active")
+        upcoming_filter = request.query_params.get("upcoming")  # ✅ new filter
 
         total_products = Product.objects.all().count()
         active_products = Product.objects.filter(is_active=True).count()
         outofstock = Product.objects.filter(count=0).count()
-        lowstock = Product.objects.filter(count__lt=10,count__gt=0).count()
+        lowstock = Product.objects.filter(count__lt=10, count__gt=0).count()
         inactive = Product.objects.filter(is_active=False).count()
- 
+        upcoming_products = Product.objects.filter(
+            upcoming=True).count()  # ✅ count upcoming
+
         # Brand filter
         if brand_id:
             products_qs = products_qs.filter(brand__id=brand_id)
@@ -104,15 +131,19 @@ class AdminProductManagementView(APIView):
 
         # Stock filter
         if stock_filter == "low":
-            products_qs = products_qs.filter(count__lt=10,count__gt=0)
+            products_qs = products_qs.filter(count__lt=10, count__gt=0)
         elif stock_filter == "out":
             products_qs = products_qs.filter(count=0)
 
-        if active_filter == "active":
+        if active_filter == "true":
             products_qs = products_qs.filter(is_active=True)
-        elif active_filter == "inactive" :
+        elif active_filter == "false":
             products_qs = products_qs.filter(is_active=False)
-            
+
+        if upcoming_filter == "true":
+            products_qs = products_qs.filter(upcoming=True)
+        elif upcoming_filter == "false":
+            products_qs = products_qs.filter(upcoming=False)
 
         products_qs = products_qs.order_by(ordering)
 
@@ -122,6 +153,7 @@ class AdminProductManagementView(APIView):
 
         query_params = request.GET.copy()
         base_url = request.build_absolute_uri(request.path)
+
         def build_url(page_number):
             query_params["page"] = page_number
             return f"{base_url}?{query_params.urlencode()}"
@@ -134,7 +166,8 @@ class AdminProductManagementView(APIView):
             "active_products": active_products,
             "outofstock": outofstock,
             "lowstock": lowstock,
-            "inactive":inactive,
+            "inactive": inactive,
+            "upcoming_products": upcoming_products,
             "next": build_url(page_obj.next_page_number()) if page_obj.has_next() else None,
             "previous": build_url(page_obj.previous_page_number()) if page_obj.has_previous() else None,
             "results": serializer.data,
@@ -169,7 +202,8 @@ class AdminProductManagementView(APIView):
         # Save product
         product_data = request.data.copy()
         product_data["brand"] = brand.id
-        image_urls = product_data.pop("images", [])  # Remove images before serializer
+        # Remove images before serializer
+        image_urls = product_data.pop("images", [])
         serializer = AdminProductSerializer(data=product_data)
         if serializer.is_valid():
             product = serializer.save(brand=brand)
@@ -195,7 +229,8 @@ class AdminProductManagementView(APIView):
                 brand_name = brand_input["name"].strip()
                 brand, _ = Brand.objects.get_or_create(
                     name=brand_name,
-                    defaults={"description": brand_input.get("description", "")},
+                    defaults={"description": brand_input.get(
+                        "description", "")},
                 )
             else:
                 return Response({"error": "Invalid brand format."}, status=status.HTTP_400_BAD_REQUEST)
@@ -206,7 +241,8 @@ class AdminProductManagementView(APIView):
         # Handle images: pop to prevent serializer issues
         image_urls = request.data.pop("images", None)
 
-        serializer = AdminProductSerializer(product, data=request.data, partial=True)
+        serializer = AdminProductSerializer(
+            product, data=request.data, partial=True)
         if serializer.is_valid():
             updated_product = serializer.save(brand=brand)
 

@@ -9,6 +9,7 @@ class Product(models.Model):
     description = models.TextField()
     is_active = models.BooleanField(default=True)
     created_at = models.DateTimeField(auto_now_add=True)
+    upcoming = models.BooleanField(default=False)  # ✅ New field
     count = models.IntegerField(default=15)
     def __str__(self):
         return f"{self.brand} - {self.name}"

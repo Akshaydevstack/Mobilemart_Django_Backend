@@ -7,6 +7,10 @@ from .serializers import CartSerializer
 from products.models import Product
 from rest_framework.views import APIView
 from django.db.models import Count
+from django.utils.timezone import now
+from users.models import User
+from orders.models import Order
+
 
 class CartViewSet(viewsets.ViewSet):
     permission_classes = [permissions.IsAuthenticated]
@@ -93,3 +97,7 @@ class ProductCartCountView(APIView):
             .order_by("-total_cart_count")
         )
         return Response(data)
+    
+
+
+

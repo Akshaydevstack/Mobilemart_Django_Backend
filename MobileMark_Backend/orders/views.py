@@ -25,7 +25,7 @@ from django.db.models.functions import ExtractHour
 from datetime import datetime
 from decimal import Decimal
 from .models import Order
-
+from django.db.models.functions import TruncMonth
 
 
 class OrderViewSet(viewsets.ModelViewSet):
@@ -203,12 +203,12 @@ class BrandSalesReportView(APIView):
 
 
 
+
 class AdminBusinessAnalyticsView(APIView):
     def get(self, request):
         start_date = request.query_params.get('start_date')
         end_date = request.query_params.get('end_date')
 
-        # Filter orders by date range
         order_filter = Q()
         if start_date:
             order_filter &= Q(created_at__date__gte=start_date)
@@ -217,34 +217,82 @@ class AdminBusinessAnalyticsView(APIView):
 
         orders = Order.objects.filter(order_filter).select_related('user').order_by('-created_at')
 
-        # Pagination - 20 orders per page
+        # Pagination
         paginator = PageNumberPagination()
         paginator.page_size = 20
         result_page = paginator.paginate_queryset(orders, request)
-
         serializer = AdminTotalOrderSerializer(result_page, many=True)
 
-        # Chart & total stats
+        # Base stats
         total_sales = orders.aggregate(total_sales=Sum('total'))['total_sales'] or 0
         total_orders = orders.count()
+        avg_order_value = round(total_sales / total_orders, 2) if total_orders > 0 else 0
 
-        daily_sales_qs = orders.extra({'date': "date(created_at)"}).values('date').annotate(daily_total=Sum('total')).order_by('date')
+        # Order statuses
+        completed_orders = orders.filter(status="Delivered").count()
+        cancelled_orders = orders.filter(status="Cancelled").count()
+        returned_orders = orders.filter(status="Returned").count()
+        pending_orders = orders.filter(status="Pending").count()
+
+        # Customer insights
+        unique_customers = orders.values('user').distinct().count()
+        repeat_customers = (
+            orders.values('user')
+            .annotate(order_count=Count('id'))
+            .filter(order_count__gte=2)
+            .count()
+        )
+
+        # Daily sales
+        daily_sales_qs = (
+            orders.extra({'date': "date(created_at)"})
+            .values('date')
+            .annotate(daily_total=Sum('total'))
+            .order_by('date')
+        )
         daily_sales = {item['date'].isoformat(): float(item['daily_total']) for item in daily_sales_qs}
+
+        # Monthly sales (for charts)
+        monthly_sales_qs = (
+            orders.annotate(month=TruncMonth('created_at'))
+            .values('month')
+            .annotate(monthly_total=Sum('total'))
+            .order_by('month')
+        )
+        monthly_sales = {item['month'].strftime("%Y-%m"): float(item['monthly_total']) for item in monthly_sales_qs}
+
+        # Best-selling products (top 5)
+        best_selling_products = (
+            OrderItem.objects
+            .filter(order__in=orders)
+            .values('product__name')
+            .annotate(total_qty=Sum('quantity'))
+            .order_by('-total_qty')[:5]
+        )
 
         response_data = {
             'count': paginator.page.paginator.count,
             'next': paginator.get_next_link(),
             'previous': paginator.get_previous_link(),
             'results': serializer.data,
+
             'chart_data': {
                 'total_sales': float(total_sales),
                 'total_orders': total_orders,
-                'daily_sales': daily_sales
+                'average_order_value': avg_order_value,
+                'daily_sales': daily_sales,
+                'monthly_sales': monthly_sales,
+                'completed_orders': completed_orders,
+                'cancelled_orders': cancelled_orders,
+                'returned_orders': returned_orders,
+                'pending_orders': pending_orders,
+                'unique_customers': unique_customers,
+                'repeat_customers': repeat_customers,
+                'best_selling_products': list(best_selling_products),
             }
         }
 
-        return Response(response_data)
-    
+        return Response(response_data, status=status.HTTP_200_OK)
 
 
 

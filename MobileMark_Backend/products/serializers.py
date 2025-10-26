@@ -38,6 +38,8 @@ class ProductSerializer(serializers.ModelSerializer):
 
 
 
+
+
 class AdminProductSerializer(serializers.ModelSerializer):
     brand = serializers.PrimaryKeyRelatedField(
         queryset=Brand.objects.all(),
@@ -57,7 +59,7 @@ class AdminProductSerializer(serializers.ModelSerializer):
         model = Product
         fields = [
             'id', 'brand', 'brand_detail', 'name', 'price', 'description',
-            'is_active', 'count', 'images', 'image_urls', 'created_at', 'reviews'
+            'is_active','upcoming','count', 'images', 'image_urls', 'created_at', 'reviews'
         ]
 
     @transaction.atomic
