@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="UTF-8" />
+    <title>{{ product_name }} is now available!</title>
+    <style>
+      body {
+        font-family: 'Helvetica Neue', Arial, sans-serif;
+        background-color: #f9fafb;
+        color: #333;
+        padding: 20px;
+      }
+      .email-container {
+        max-width: 600px;
+        margin: auto;
+        background: #fff;
+        border-radius: 12px;
+        box-shadow: 0 4px 10px rgba(0, 0, 0, 0.05);
+        overflow: hidden;
+      }
+      .header {
+        background: #4f46e5;
+        color: #fff;
+        text-align: center;
+        padding: 20px;
+      }
+      .content {
+        padding: 30px;
+        line-height: 1.6;
+      }
+      .button {
+        display: inline-block;
+        background: #4f46e5;
+        color: #fff;
+        padding: 10px 20px;
+        border-radius: 8px;
+        text-decoration: none;
+        margin-top: 15px;
+      }
+      .footer {
+        font-size: 0.9em;
+        color: #888;
+        text-align: center;
+        padding: 20px;
+        background: #f3f4f6;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="email-container">
+      <div class="header">
+        <h1>{{ site_name }}</h1>
+      </div>
+      <div class="content">
+        <h2>🎉 {{ product_name }} is now available!</h2>
+        <p>
+          Hello {{ username }},<br /><br />
+          We're excited to let you know that <strong>{{ product_name }}</strong> is now
+          available on <strong>{{ site_name }}</strong> for ₹{{ product_price }}!
+        </p>
+        <a href="{{ product_link }}" class="button">View Product</a>
+        <p>Hurry up! Stocks are limited.</p>
+      </div>
+      <div class="footer">
+        <p>© {{ site_name }} | Thank you for shopping with us 💜</p>
+      </div>
+    </div>
+  </body>
+</html>

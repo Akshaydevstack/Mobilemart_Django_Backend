@@ -53,7 +53,7 @@ INSTALLED_APPS = [
     'payments',
     'coupons',
     'common',
-    'notifications',
+    'notifications.apps.NotificationsConfig',
 ]
 
 MIDDLEWARE = [

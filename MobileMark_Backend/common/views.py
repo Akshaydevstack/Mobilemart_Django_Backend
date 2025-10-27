@@ -5,11 +5,13 @@ from users.models import User
 from products.models import Product
 from orders.models import Order
 from cart.models import Cart, CartItem
-
+from common.permissions import IsAdminUserRole
 
 # Create your views here.
 
 class DashboardOverviewView(APIView):
+
+    permission_classes = [IsAdminUserRole]
 
     def get(self, request):
         today = now().date()

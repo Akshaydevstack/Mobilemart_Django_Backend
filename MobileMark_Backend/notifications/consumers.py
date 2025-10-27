@@ -2,35 +2,48 @@
 import json
 from channels.generic.websocket import AsyncWebsocketConsumer
 from channels.db import database_sync_to_async
+from .models import Notification
 
 class NotificationConsumer(AsyncWebsocketConsumer):
     async def connect(self):
-        # Lazy import inside method
-        from .models import Notification
 
-        # Join a group for broadcast notifications
-        await self.channel_layer.group_add("notifications", self.channel_name)
+        self.user = self.scope.get("user")
+        if self.user.is_anonymous:
+            await self.close()
+            return
+
+        # Personal group for user
+        self.personal_group = f"user_{self.user.id}"
+        await self.channel_layer.group_add(self.personal_group, self.channel_name)
+
+        # Optional broadcast group
+        await self.channel_layer.group_add("broadcast", self.channel_name)
+
         await self.accept()
 
     async def disconnect(self, close_code):
-        await self.channel_layer.group_discard("notifications", self.channel_name)
+        if hasattr(self, "personal_group"):
+            await self.channel_layer.group_discard(self.personal_group, self.channel_name)
+        await self.channel_layer.group_discard("broadcast", self.channel_name)
 
     async def receive(self, text_data):
-        """Receive notification from admin frontend"""
-        from .models import Notification  # Lazy import here as well
+        try:
+            data = json.loads(text_data)
+        except json.JSONDecodeError:
+            await self.send(text_data=json.dumps({"error": "Invalid JSON"}))
+            return
 
-        data = json.loads(text_data)
         title = data.get("title", "")
         message = data.get("message", "")
-        image_url = data.get("imageUrl", "")
-        user_id = data.get("userId")  # Optional, for user-specific notification
+        image_url = data.get("imageUrl")
+        target_user_id = data.get("userId")  # optional
 
-        # Save to DB
-        notification = await database_sync_to_async(Notification.objects.create)(
+        # Save to database safely
+        notification = await database_sync_to_async(Notification.objects.create, thread_sensitive=True)(
             title=title,
             message=message,
             image_url=image_url,
-            user_id=user_id if user_id else None
+            user_id=target_user_id if target_user_id else None,
         )
 
         notification_data = {
@@ -38,16 +51,18 @@ class NotificationConsumer(AsyncWebsocketConsumer):
             "title": notification.title,
             "message": notification.message,
             "imageUrl": notification.image_url,
-            "createdAt": str(notification.created_at),
-            "userId": notification.user_id
+            "createdAt": notification.created_at.isoformat(),
+            "userId": notification.user_id,
         }
 
-        # Broadcast to all users if user is None, else send to specific user group
-        group_name = f"user_{user_id}" if user_id else "notifications"
+        # Determine which group to send
+        group_name = f"user_{target_user_id}" if target_user_id else "broadcast"
+
         await self.channel_layer.group_send(
             group_name,
-            {"type": "send_notification", "message": notification_data}
+            {"type": "send_notification", "message": notification_data},
         )
 
     async def send_notification(self, event):
+        """Send notification to WebSocket client"""
         await self.send(text_data=json.dumps(event["message"]))

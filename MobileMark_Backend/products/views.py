@@ -11,10 +11,10 @@ from brands.serializers import BrandSerializer
 from django.core.paginator import Paginator
 from django.shortcuts import get_object_or_404
 from rest_framework.pagination import PageNumberPagination
-
+from common.permissions import IsAdminUserRole
 
 class ProductViewSet(viewsets.ModelViewSet):
-    queryset = Product.objects.filter(is_active=True).select_related(
+    queryset = Product.objects.filter(is_active=True,upcoming = False).select_related(
         'brand').prefetch_related('images')
     serializer_class = ProductSerializer
     permission_classes = [permissions.AllowAny]
@@ -38,6 +38,7 @@ class ProductViewSet(viewsets.ModelViewSet):
 # upcoming product view
 
 class UpcomingProductView(APIView):
+    permission_classes = [permissions.AllowAny]
     def get(self, request, product_id=None):
         if not product_id:
             products = Product.objects.filter(upcoming=True)
@@ -90,6 +91,7 @@ class AdminProductManagementView(APIView):
     - PATCH: Update product and optionally replace images
     - DELETE: Delete product
     """
+    permission_classes = [IsAdminUserRole]
 
     def get(self, request):
         # Get all brands
@@ -122,12 +124,20 @@ class AdminProductManagementView(APIView):
             products_qs = products_qs.filter(brand__id=brand_id)
 
         # Search filter
-        if search:
-            products_qs = products_qs.filter(
-                Q(name__icontains=search) |
-                Q(description__icontains=search) |
-                Q(brand__name__icontains=search)
-            )
+        from django.db.models import Q
+
+      
+    # Always define id_filter, even if search is not numeric
+        id_filter = Q()  # empty Q object does nothing
+        if search.isdigit():
+            id_filter = Q(id=int(search))
+
+        products_qs = products_qs.filter(
+        Q(name__icontains=search) |
+        Q(description__icontains=search) |
+        Q(brand__name__icontains=search) |
+        id_filter
+    )
 
         # Stock filter
         if stock_filter == "low":

@@ -8,8 +8,7 @@ from products.models import Product
 from rest_framework.views import APIView
 from django.db.models import Count
 from django.utils.timezone import now
-from users.models import User
-from orders.models import Order
+from common.permissions import IsAdminUserRole
 
 
 class CartViewSet(viewsets.ViewSet):
@@ -66,6 +65,8 @@ class CartViewSet(viewsets.ViewSet):
 # admin only view 
 
 class AdminManageCartView(APIView):
+
+    permission_classes = [IsAdminUserRole]
 
     def get(self,request,user_id=None):
         if not user_id:

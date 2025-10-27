@@ -26,6 +26,9 @@ from datetime import datetime
 from decimal import Decimal
 from .models import Order
 from django.db.models.functions import TruncMonth
+from common.permissions import IsAdminUserRole
+
+
 
 
 class OrderViewSet(viewsets.ModelViewSet):
@@ -90,7 +93,7 @@ def create_order(request):
 # admin only view
 
 class AdminOrderManagementView(APIView):
-    permission_classes = [permissions.AllowAny]
+    permission_classes = [IsAdminUserRole]
 
     def get(self, request, user_id=None):
         orders_qs = Order.objects.all()
@@ -175,6 +178,10 @@ class AdminOrderManagementView(APIView):
 
 
 class BrandSalesReportView(APIView):
+
+    permission_classes = [IsAdminUserRole]
+
+
     def get(self, request):
 
         data = (
@@ -205,6 +212,9 @@ class BrandSalesReportView(APIView):
 
 
 class AdminBusinessAnalyticsView(APIView):
+
+    permission_classes = [IsAdminUserRole]
+
     def get(self, request):
         start_date = request.query_params.get('start_date')
         end_date = request.query_params.get('end_date')
@@ -298,6 +308,11 @@ class AdminBusinessAnalyticsView(APIView):
 
 
 class DailySalesView(APIView):
+
+
+    permission_classes = [IsAdminUserRole]
+
+
     def get(self, request):
 
         date_str = request.query_params.get("date")

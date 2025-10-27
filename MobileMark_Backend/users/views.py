@@ -23,6 +23,7 @@ from .models import Address
 from .serializers import AddressSerializer
 from rest_framework import viewsets
 from django.db.models import Q
+from common.permissions import IsAdminUserRole
 
 
 User = get_user_model()
@@ -362,7 +363,7 @@ class AddressDetailView(generics.RetrieveUpdateDestroyAPIView):
 # Admin only view
 
 class AdminManageUsersView(APIView):
-    permission_classes = [permissions.AllowAny]
+    permission_classes = [IsAdminUserRole]
 
     def get(self, request, pk=None):
         if pk is None:

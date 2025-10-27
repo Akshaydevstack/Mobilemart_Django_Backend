@@ -5,7 +5,7 @@ from .models import Wishlist
 from products.models import Product
 from .serializers import WishlistSerializer
 from rest_framework.views import APIView
-
+from common.permissions import IsAdminUserRole
 
 class WishlistViewSet(viewsets.ViewSet):
     permission_classes = [IsAuthenticated]
@@ -48,7 +48,7 @@ class WishlistViewSet(viewsets.ViewSet):
 # admin only
 
 class AdminMangeWishlistView(APIView):
-    permission_classes = [AllowAny]
+    permission_classes = [IsAdminUserRole]
     def get(self,request,user_id=None):
         if not user_id:
             wishlists = Wishlist.objects.all()
