@@ -25,7 +25,14 @@ SECRET_KEY = 'django-insecure-hww4)5)52)h*_b3ipu@6%4_x#_y836zt-&42hq*i*nkcg=g1s*
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = [
+    '13.203.202.165',
+    'ec2-13-203-202-165.ap-south-1.compute.amazonaws.com',
+    'localhost',
+    '127.0.0.1',
+    'https://moble-mart.vercel.app/',
+]
+
 
 
 # Application definition
@@ -92,12 +99,12 @@ WSGI_APPLICATION = 'MobileMark_Backend.wsgi.application'
 
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.postgresql', # PostgreSQL backend
-        'NAME': 'mobile_mart',             # Database name
-        'USER': 'postgres',                 # Database username
-        'PASSWORD': '12345678',             # Database password
-        'HOST': 'localhost',                # Database host (use IP or domain if remote)
-        'PORT': '5433',                     # Default PostgreSQL port
+        'ENGINE': 'django.db.backends.postgresql',
+        'NAME': 'postgres',  # your database name
+        'USER': 'MobileMartAdmin',         # your RDS username
+        'PASSWORD': 'ztKV^Wj?2j.4)(j',  # your RDS password
+        'HOST': 'mobilemart-db.cv82ck8gae2y.ap-south-1.rds.amazonaws.com',  # your RDS endpoint
+        'PORT': '5432',
     }
 }
 
@@ -173,8 +180,11 @@ SIMPLE_JWT = {
 
 # allow specific origin
 CORS_ALLOWED_ORIGINS = [
+    "https://moble-mart.vercel.app",
     "http://localhost:5173",
+    "http://127.0.0.1:5173",
 ]
+
 CORS_ALLOW_CREDENTIALS = True
 
 # # OR allow all origins (not recommended for production)
@@ -198,14 +208,15 @@ DEFAULT_FROM_EMAIL = EMAIL_HOST_USER
 
 # ✅ Cookie & CSRF settings for local dev with React frontend
 CSRF_TRUSTED_ORIGINS = [
+    "https://moble-mart.vercel.app",
     "http://localhost:5173",
+    "http://127.0.0.1:5173",
 ]
 
-SESSION_COOKIE_SAMESITE = "Lax"   # Lax works locally
-SESSION_COOKIE_SECURE = False      # Keep False for local dev
-
-CSRF_COOKIE_SAMESITE = "Lax"      # Lax works locally
-CSRF_COOKIE_SECURE = False         # Keep False for local devf
+SESSION_COOKIE_SAMESITE = "None"
+SESSION_COOKIE_SECURE = True
+CSRF_COOKIE_SAMESITE = "None"
+CSRF_COOKIE_SECURE = True
 
 RAZORPAY_KEY_ID = "rzp_test_RVoZd9UTCaOnZS"
 RAZORPAY_KEY_SECRET = "aktv2nzGgtHZHtxmgJXz3ewY"
@@ -223,3 +234,6 @@ CHANNEL_LAYERS = {
         },
     },
 }
+
+
+
