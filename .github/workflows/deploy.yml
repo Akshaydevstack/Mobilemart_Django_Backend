@@ -4,7 +4,7 @@ on:
   push:
     branches:
       - main
-  workflow_dispatch:
+  workflow_dispatch:  # allows manual trigger from Actions tab
 
 jobs:
   deploy:
@@ -22,12 +22,28 @@ jobs:
       - name: Deploy to EC2
         run: |
           ssh -o StrictHostKeyChecking=no ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }} << 'EOF'
-          cd ~/Mobilemart_Django_Backend
-          git pull origin main
-          source venv/bin/activate
-          pip install -r requirements.txt
-          python MobileMark_Backend/manage.py migrate
-          python MobileMark_Backend/manage.py collectstatic --noinput
-          sudo systemctl restart daphne
-          sudo systemctl restart nginx
+            set -e
+            cd ~/Mobilemart_Django_Backend
+
+            echo "📦 Pulling latest code from main..."
+            git fetch origin main
+            git reset --hard origin/main
+
+            echo "🐍 Activating virtual environment..."
+            source venv/bin/activate
+
+            echo "📚 Installing dependencies..."
+            pip install -r requirements.txt
+
+            echo "🧩 Applying migrations..."
+            python MobileMark_Backend/manage.py migrate --noinput
+
+            echo "🧱 Collecting static files..."
+            python MobileMark_Backend/manage.py collectstatic --noinput
+
+            echo "🔁 Restarting services..."
+            sudo systemctl restart daphne
+            sudo systemctl restart nginx
+
+            echo "✅ Deployment complete!"
           EOF
