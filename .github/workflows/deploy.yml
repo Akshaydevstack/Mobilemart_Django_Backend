@@ -4,7 +4,7 @@ on:
   push:
     branches:
       - main
-  workflow_dispatch:  # allows manual trigger from Actions tab
+  workflow_dispatch:
 
 jobs:
   deploy:
@@ -41,7 +41,7 @@ jobs:
             echo "🧱 Collecting static files..."
             python MobileMark_Backend/manage.py collectstatic --noinput
 
-            echo "🔁 Restarting services...."
+            echo "🔁 Restarting services..."
             sudo systemctl restart daphne
             sudo systemctl restart nginx
 
