@@ -62,11 +62,11 @@ class RegisterView(generics.CreateAPIView):
             key="refresh_token",
             value=str(refresh),
             httponly=True,
-            secure=False,  # True in production (HTTPS)
-            samesite="Lax",  # Lax works with local dev + cookie sending
+            secure=True,
+            samesite="None",
             path="/",
-            max_age=7 * 24 * 60 * 60  # 7 days
-        )
+            max_age=7 * 24 * 60 * 60
+            )
 
         return response
 
@@ -91,8 +91,8 @@ class CustomLoginView(generics.CreateAPIView):
                 key="refresh_token",
                 value=str(refresh),
                 httponly=True,
-                secure=False,  # True in production (HTTPS)
-                samesite="Lax",
+                secure=True,  # True in production (HTTPS)
+                samesite="None",
                 path="/",
                 max_age=7*24*60*60  # 7 days
             )
@@ -139,8 +139,8 @@ class GoogleLoginView(APIView):
                 key="refresh_token",
                 value=str(refresh),
                 httponly=True,
-                secure=False,   # Local dev
-                samesite="Lax",  # ✅ Must be Lax for local testing
+                secure=True,   # Local dev
+                samesite="None",  # ✅ Must be Lax for local testing
                 path="/",
                 max_age=7*24*60*60
             )
@@ -208,7 +208,7 @@ class PasswordResetView(generics.GenericAPIView):
         uid = urlsafe_base64_encode(force_bytes(user.pk))
         token = token_generator.make_token(user)
         # React frontend URL
-        reset_url = f"http://localhost:5173/reset-password/{uid}/{token}/"
+        reset_url = f"https://moble-mart.vercel.app/reset-password/{uid}/{token}/"
 
         # Send email
         subject = "Password Reset Request"
