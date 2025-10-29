@@ -211,9 +211,9 @@ class BrandSalesReportView(APIView):
 
 
 
-class AdminBusinessAnalyticsView(APIView):
 
-    permission_classes = [IsAdminUserRole]
+class AdminBusinessAnalyticsView(APIView):
+    permission_classes = [permissions.AllowAny]
 
     def get(self, request):
         start_date = request.query_params.get('start_date')
@@ -238,11 +238,11 @@ class AdminBusinessAnalyticsView(APIView):
         total_orders = orders.count()
         avg_order_value = round(total_sales / total_orders, 2) if total_orders > 0 else 0
 
-        # Order statuses
-        completed_orders = orders.filter(status="Delivered").count()
+        # Order statuses (updated according to model)
+        processing_orders = orders.filter(status="Processing").count()
+        shipped_orders = orders.filter(status="Shipped").count()
+        delivered_orders = orders.filter(status="Delivered").count()
         cancelled_orders = orders.filter(status="Cancelled").count()
-        returned_orders = orders.filter(status="Returned").count()
-        pending_orders = orders.filter(status="Pending").count()
 
         # Customer insights
         unique_customers = orders.values('user').distinct().count()
@@ -262,7 +262,7 @@ class AdminBusinessAnalyticsView(APIView):
         )
         daily_sales = {item['date'].isoformat(): float(item['daily_total']) for item in daily_sales_qs}
 
-        # Monthly sales (for charts)
+        # Monthly sales
         monthly_sales_qs = (
             orders.annotate(month=TruncMonth('created_at'))
             .values('month')
@@ -271,7 +271,7 @@ class AdminBusinessAnalyticsView(APIView):
         )
         monthly_sales = {item['month'].strftime("%Y-%m"): float(item['monthly_total']) for item in monthly_sales_qs}
 
-        # Best-selling products (top 5)
+        # Best-selling products
         best_selling_products = (
             OrderItem.objects
             .filter(order__in=orders)
@@ -290,14 +290,14 @@ class AdminBusinessAnalyticsView(APIView):
                 'total_sales': float(total_sales),
                 'total_orders': total_orders,
                 'average_order_value': avg_order_value,
-                'daily_sales': daily_sales,
-                'monthly_sales': monthly_sales,
-                'completed_orders': completed_orders,
+                'processing_orders': processing_orders,
+                'shipped_orders': shipped_orders,
+                'delivered_orders': delivered_orders,
                 'cancelled_orders': cancelled_orders,
-                'returned_orders': returned_orders,
-                'pending_orders': pending_orders,
                 'unique_customers': unique_customers,
                 'repeat_customers': repeat_customers,
+                'daily_sales': daily_sales,
+                'monthly_sales': monthly_sales,
                 'best_selling_products': list(best_selling_products),
             }
         }
