@@ -210,8 +210,6 @@ class BrandSalesReportView(APIView):
 
 
 
-
-
 class AdminBusinessAnalyticsView(APIView):
     permission_classes = [permissions.AllowAny]
 
@@ -240,18 +238,10 @@ class AdminBusinessAnalyticsView(APIView):
 
         # Order statuses (updated according to model)
         processing_orders = orders.filter(status="Processing").count()
-        shipped_orders = orders.filter(status="Shipped").count()
+        Pending_orders = orders.filter(status="Pending").count()
         delivered_orders = orders.filter(status="Delivered").count()
         cancelled_orders = orders.filter(status="Cancelled").count()
 
-        # Customer insights
-        unique_customers = orders.values('user').distinct().count()
-        repeat_customers = (
-            orders.values('user')
-            .annotate(order_count=Count('id'))
-            .filter(order_count__gte=2)
-            .count()
-        )
 
         # Daily sales
         daily_sales_qs = (
@@ -291,11 +281,9 @@ class AdminBusinessAnalyticsView(APIView):
                 'total_orders': total_orders,
                 'average_order_value': avg_order_value,
                 'processing_orders': processing_orders,
-                'shipped_orders': shipped_orders,
+                'Pending_orders': Pending_orders,
                 'delivered_orders': delivered_orders,
                 'cancelled_orders': cancelled_orders,
-                'unique_customers': unique_customers,
-                'repeat_customers': repeat_customers,
                 'daily_sales': daily_sales,
                 'monthly_sales': monthly_sales,
                 'best_selling_products': list(best_selling_products),
@@ -303,7 +291,6 @@ class AdminBusinessAnalyticsView(APIView):
         }
 
         return Response(response_data, status=status.HTTP_200_OK)
-
 
 
 
