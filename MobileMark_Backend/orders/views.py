@@ -211,7 +211,7 @@ class BrandSalesReportView(APIView):
 
 
 class AdminBusinessAnalyticsView(APIView):
-    permission_classes = [permissions.AllowAny]
+    permission_classes = [IsAdminUserRole]
 
     def get(self, request):
         start_date = request.query_params.get('start_date')
