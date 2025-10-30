@@ -32,14 +32,17 @@ jobs:
             echo "🐍 Activating virtual environment..."
             source venv/bin/activate
 
+            echo "🌍 Setting environment to PRODUCTION..."
+            export DJANGO_ENV=production
+
             echo "📚 Installing dependencies..."
             pip install -r requirements.txt
 
             echo "🧩 Applying migrations..."
-            python MobileMark_Backend/manage.py migrate --noinput
+            DJANGO_ENV=production python MobileMark_Backend/manage.py migrate --noinput
 
             echo "🧱 Collecting static files..."
-            python MobileMark_Backend/manage.py collectstatic --noinput
+            DJANGO_ENV=production python MobileMark_Backend/manage.py collectstatic --noinput
 
             echo "🔁 Restarting services..."
             sudo systemctl restart daphne
