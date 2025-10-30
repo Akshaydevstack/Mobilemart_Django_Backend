@@ -12,7 +12,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # -------------------------------------------------
 # 🔹 Environment control
 # -------------------------------------------------
-DEBUG = False  # ✅ Change to False for production
+DEBUG = True  # ✅ Change to False for production
 
 if DEBUG:
     ENVIRONMENT = "local"
