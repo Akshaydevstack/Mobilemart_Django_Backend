@@ -32,6 +32,8 @@ ALLOWED_HOSTS = [
     'localhost',
     '127.0.0.1',
     'https://moble-mart.vercel.app/',
+    "mobilemart.online",
+    "www.mobilemart.online",
 ]
 
 # -------------------------------------------------
